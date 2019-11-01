@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/blog/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/blog/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/blog/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/blog/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="HashMap是一种基于哈希表的key-value集合，本文的主要内容就是通过阅读源码来深入理解HashMap的工作原理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解Java HashMap">
+<meta property="og:url" content="http:&#x2F;&#x2F;vxiaop.github.io&#x2F;blog&#x2F;2018&#x2F;12&#x2F;11&#x2F;%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap%E7%9A%84%E5%89%AF%E6%9C%AC%2011&#x2F;index.html">
+<meta property="og:site_name" content="vip&#39;s blog">
+<meta property="og:description" content="HashMap是一种基于哈希表的key-value集合，本文的主要内容就是通过阅读源码来深入理解HashMap的工作原理。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;vxiaop&#x2F;blog-image&#x2F;master&#x2F;%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap&#x2F;%E5%9B%BE%E7%89%871.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;vxiaop&#x2F;blog-image&#x2F;master&#x2F;%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap&#x2F;%E5%9B%BE%E7%89%872.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;vxiaop&#x2F;blog-image&#x2F;master&#x2F;%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap&#x2F;%E5%9B%BE%E7%89%873.png">
+<meta property="og:updated_time" content="2018-12-11T08:47:52.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;raw.githubusercontent.com&#x2F;vxiaop&#x2F;blog-image&#x2F;master&#x2F;%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap&#x2F;%E5%9B%BE%E7%89%871.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/blog/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://vxiaop.github.io/blog/2018/12/11/深入理解Java HashMap的副本 11/"/>
+
+
+
+
+
+  <title>深入理解Java HashMap | vip's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/blog/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">vip's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://vxiaop.github.io/blog/blog/2018/12/11/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap%E7%9A%84%E5%89%AF%E6%9C%AC%2011/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="vip">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/blog/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="vip's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解Java HashMap</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-11T16:47:52+08:00">
+                2018-12-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>HashMap是一种基于哈希表的key-value集合，本文的主要内容就是通过阅读源码来深入理解HashMap的工作原理。</p>
+<a id="more"></a>
+
+<h1 id="HashMap的数据结构"><a href="#HashMap的数据结构" class="headerlink" title="HashMap的数据结构"></a>HashMap的数据结构</h1><p>HashMap通常的数据结构是数组+链表，在Java 1.8之后，一定条件下链表会转换为红黑树，这么做的目的是为了提高查找的效率。</p>
+<p><img src="https://raw.githubusercontent.com/vxiaop/blog-image/master/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap/%E5%9B%BE%E7%89%871.png" alt="图片alt"></p>
+<blockquote>
+<p><strong>问题1：</strong> 链表与红黑树会在什么情况下互相转换？</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * 当某个bucket后的链表长度(包括bucket节点)为8时, 链表将被转换为红黑树</span><br><span class="line"> */</span><br><span class="line">static final int TREEIFY_THRESHOLD = 8</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * 当由于扩容或者节点删除导致某个bucket后的红黑树节点数(包括bucket节点)小于等于6, 红黑树将被转换回链表</span><br><span class="line"> */</span><br><span class="line">static final int UNTREEIFY_THRESHOLD = 6</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * 当HashMap的容量为64时, 链表才允许转换为红黑树</span><br><span class="line"> */</span><br><span class="line">static final int MIN_TREEIFY_CAPACITY = 64</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>问题2：</strong> HashMap是线程安全的吗？<br>HashMap是非线程安全的，虽然Java 1.8中解决了并发情况下死循环的问题(扩容时)，但是本质上依然是非线程安全的，所以在并发读写时，不要使用HashMap，而应该使用ConcurrentHashMap。<br><strong>注：</strong> 如果一个类是线程安全类，那么它的每一个操作方法都应该是原子操作。需要注意的是，即使一个类是线程安全类，其组合操作(由多个原子操作组成)也并非是线程安全的，需要另外加锁。</p>
+</blockquote>
+<h1 id="HashMap的两个重要参数"><a href="#HashMap的两个重要参数" class="headerlink" title="HashMap的两个重要参数"></a>HashMap的两个重要参数</h1><p>在HashMap中有两个参数capacity和load factor，它们的值决定着HashMap的性能。<br>1 capacity<br>capacity表示HashMap的容量，它的默认初始值是16，最大值是2^30，而且它的大小必须是2的n次方。因此，当在HashMap构造方法中指定capacity时，必须通过tableSizeFor方法来保证容量是2的n次方，tableSizeFor方法的源码如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">static final int tableSizeFor(int <span class="built_in">cap</span>) &#123;</span><br><span class="line">    // 当<span class="built_in">cap</span>就是2的n次方时，n = <span class="built_in">cap</span> - 1可以保证最后计算的容量值不会翻倍，即保持不变</span><br><span class="line">    int n = <span class="built_in">cap</span> - 1;</span><br><span class="line">    // 不断右移位或是为了将n的最高为1的位后面的所有位都置为1</span><br><span class="line">    n |= n &gt;&gt;&gt; 1;</span><br><span class="line">    n |= n &gt;&gt;&gt; 2;</span><br><span class="line">    n |= n &gt;&gt;&gt; 4;</span><br><span class="line">    n |= n &gt;&gt;&gt; 8;</span><br><span class="line">    n |= n &gt;&gt;&gt; 16;</span><br><span class="line">    <span class="built_in">return</span> (n &lt; 0) ? 1 : (n &gt;= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>2 load factor<br>load factor表示负载因子，是用来衡量当前HashMap的负载程度。当HashMap中存储的元素个数达到load factor * capacity时，HashMap就需要扩容了，load factor的默认值为0.75。</p>
+<blockquote>
+<p><strong>建议1：</strong> HashMap遍历的时间复杂度为O(capacity + size)，所以在对遍历性能要求高的情况下，初始容量不应该设置的太大, 负载因子也不应该设置的太小。</p>
+</blockquote>
+<h1 id="hash方法"><a href="#hash方法" class="headerlink" title="hash方法"></a>hash方法</h1><p>hash方法的操作过程：<br>1 计算key的hashCode值；<br>2 hashCode的高16位与低16位进行位异或得到hash值；</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">static final int <span class="built_in">hash</span>(Object key) &#123;</span><br><span class="line">    int h;</span><br><span class="line">    <span class="built_in">return</span> (key == null) ? 0 : (h = key.hashCode()) ^ (h &gt;&gt;&gt; 16);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>问题3：</strong> hash方法这样实现的好处是什么？<br>在capacity容量较小的情况下，hashCode的高16位与低16位进行位异或能够很大概率地避免不同的key发生碰撞。设定capacity=16，以字符串”ababababab”与”e”为例进行对比，<br>(1) 若hashCode的高16位与低16位不进行位异或，这两个字符串作为key计算的bucket索引都是5，发生了碰撞。</p>
+<p><img src="https://raw.githubusercontent.com/vxiaop/blog-image/master/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap/%E5%9B%BE%E7%89%872.png" alt="图片alt"></p>
+<p>(2) 若hashCode的高16位与低16位进行了位异或，这两个字符串作为key计算的bucket索引分别是6和5，不会发生碰撞。</p>
+<p><img src="https://raw.githubusercontent.com/vxiaop/blog-image/master/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap/%E5%9B%BE%E7%89%873.png" alt="图片alt"></p>
+</blockquote>
+<h1 id="put方法"><a href="#put方法" class="headerlink" title="put方法"></a>put方法</h1><p>put方法的操作过程：<br>1 对key做hash操作，并且通过(n - 1) &amp; hash计算bucket索引；<br>2 如果key没有发生冲突，新节点直接放到bucket中；<br>3 如果key发生了冲突，两种处理情况：(a)如果bucket节点是树节点，则按红黑树的方式插入；(b)如果bucket节点是链表节点，则按链表的方式插入，当链表长度大于等于8时，链表会转为红黑树；<br>4 如果key存在，记录该节点，后续用新的value替换旧的value；<br>5 如果节点个数达到容量阈值，则进行扩容；</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">public V put(K key, V value) &#123;</span><br><span class="line">    <span class="built_in">return</span> putVal(<span class="built_in">hash</span>(key), key, value, <span class="literal">false</span>, <span class="literal">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">final V putVal(int <span class="built_in">hash</span>, K key, V value, boolean onlyIfAbsent, boolean evict) &#123;</span><br><span class="line">    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; int n, i;</span><br><span class="line">    <span class="keyword">if</span> ((tab = table) == null || (n = tab.length) == 0)</span><br><span class="line">        n = (tab = resize()).length;</span><br><span class="line">    // 如果key没有发生冲突, 新节点直接放到bucket中, (n - 1) &amp; <span class="built_in">hash</span>计算bucket索引</span><br><span class="line">    <span class="keyword">if</span> ((p = tab[i = (n - 1) &amp; <span class="built_in">hash</span>]) == null)</span><br><span class="line">        tab[i] = newNode(<span class="built_in">hash</span>, key, value, null);</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        Node&lt;K,V&gt; e; K k;</span><br><span class="line">        // 如果key在bucket节点存在, e记录该bucket节点</span><br><span class="line">        <span class="keyword">if</span> (p.hash == <span class="built_in">hash</span> &amp;&amp; ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))    </span><br><span class="line">            e = p;</span><br><span class="line">        // 如果bucket节点是树节点, 按红黑树的方式处理(java 1.8 新增)</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (p instanceof TreeNode)</span><br><span class="line">            e = ((TreeNode&lt;K,V&gt;)p).putTreeVal(this, tab, <span class="built_in">hash</span>, key, value);</span><br><span class="line">        // 按链表的方式处理</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">for</span> (int binCount = 0; ; ++binCount) &#123;</span><br><span class="line">                // key不存在, 链表尾插入新节点</span><br><span class="line">                <span class="keyword">if</span> ((e = p.next) == null) &#123;</span><br><span class="line">                    p.next = newNode(<span class="built_in">hash</span>, key, value, null);</span><br><span class="line">                    // binCount表示链表的长度(不包括bucket节点), 如果binCount &gt;= 7, 则需要将链表转换为红黑树</span><br><span class="line">                    <span class="keyword">if</span> (binCount &gt;= TREEIFY_THRESHOLD - 1) // -1 <span class="keyword">for</span> 1st</span><br><span class="line">                        treeifyBin(tab, <span class="built_in">hash</span>);</span><br><span class="line">                    <span class="built_in">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                // key存在, e记录该节点</span><br><span class="line">                <span class="keyword">if</span> (e.hash == <span class="built_in">hash</span> &amp;&amp; ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))</span><br><span class="line">                    <span class="built_in">break</span>;</span><br><span class="line">                p = e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        // 上面代码中, e记录了key存在的节点</span><br><span class="line">        <span class="keyword">if</span> (e != null) &#123; // existing mapping <span class="keyword">for</span> key</span><br><span class="line">            V oldValue = e.value;</span><br><span class="line">            // onlyIfAbsent是开关, 如果为<span class="literal">true</span>表示只有在value不存在或为null的情况下, 才用新value覆盖旧value</span><br><span class="line">            <span class="keyword">if</span> (!onlyIfAbsent || oldValue == null)</span><br><span class="line">                e.value = value;</span><br><span class="line">            // 后续处理方法, HashMap默认处理方法体为空</span><br><span class="line">            afterNodeAccess(e);</span><br><span class="line">            <span class="built_in">return</span> oldValue;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ++modCount;</span><br><span class="line">    // 插入节点后, 如果节点个数达到容量阈值, 则需要扩容</span><br><span class="line">    <span class="keyword">if</span> (++size &gt; threshold)</span><br><span class="line">        resize();</span><br><span class="line">    // 后续处理方法, HashMap默认处理方法体为空</span><br><span class="line">    afterNodeInsertion(evict);</span><br><span class="line">    <span class="built_in">return</span> null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="resize方法"><a href="#resize方法" class="headerlink" title="resize方法"></a>resize方法</h1><p>在put方法中，当新插入节点后，如果节点个数达到容量阈值，就会发生扩容，下面就看一下resize方法的操作过程：<br>1 table长度扩充为原来的2倍(依旧保持2的n次方)，阈值也跟着翻倍；<br>2 对原table中的所有节点重新计算bucket索引，并插入新table中，三种处理情况：(a)如果bucket节点后没有链表或者红黑树(即，当前bucket没有发生冲突)，则重新计算新的bucket索引赋值当前bucket节点；(b)如果bucket节点是树节点，按红黑树的方式处理bucket节点以及其后的所有节点；(c)如果bucket节点是链表节点，按链表的方式处理bucket节点以及其后的所有节点；</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line">final Node&lt;K,V&gt;[] <span class="function"><span class="title">resize</span></span>() &#123;</span><br><span class="line">    Node&lt;K,V&gt;[] oldTab = table;</span><br><span class="line">    int oldCap = (oldTab == null) ? 0 : oldTab.length;</span><br><span class="line">    int oldThr = threshold;</span><br><span class="line">    int newCap, newThr = 0;</span><br><span class="line">    <span class="keyword">if</span> (oldCap &gt; 0) &#123;</span><br><span class="line">        <span class="keyword">if</span> (oldCap &gt;= MAXIMUM_CAPACITY) &#123;</span><br><span class="line">            threshold = Integer.MAX_VALUE;</span><br><span class="line">            <span class="built_in">return</span> oldTab;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((newCap = oldCap &lt;&lt; 1) &lt; MAXIMUM_CAPACITY &amp;&amp; oldCap &gt;= DEFAULT_INITIAL_CAPACITY)</span><br><span class="line">            newThr = oldThr &lt;&lt; 1; // double threshold</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (oldThr &gt; 0) // initial capacity was placed <span class="keyword">in</span> threshold</span><br><span class="line">        newCap = oldThr;</span><br><span class="line">    <span class="keyword">else</span> &#123;               // zero initial threshold signifies using defaults</span><br><span class="line">        newCap = DEFAULT_INITIAL_CAPACITY;</span><br><span class="line">        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);</span><br><span class="line">    &#125;</span><br><span class="line">    // threshold通常都等于容量*负载因子, 除非容量是MAXIMUM_CAPACITY, threshold会等于Integer.MAX_VALUE</span><br><span class="line">    <span class="keyword">if</span> (newThr == 0) &#123;</span><br><span class="line">        <span class="built_in">float</span> ft = (<span class="built_in">float</span>)newCap * loadFactor;</span><br><span class="line">        newThr = (newCap &lt; MAXIMUM_CAPACITY &amp;&amp; ft &lt; (<span class="built_in">float</span>)MAXIMUM_CAPACITY ?</span><br><span class="line">                    (int)ft : Integer.MAX_VALUE);</span><br><span class="line">    &#125;</span><br><span class="line">    threshold = newThr;</span><br><span class="line">    @SuppressWarnings(&#123;<span class="string">"rawtypes"</span>,<span class="string">"unchecked"</span>&#125;)</span><br><span class="line">    // 创建新table, 长度为原table的2倍</span><br><span class="line">    Node&lt;K,V&gt;[] newTab = (Node&lt;K,V&gt;[])new Node[newCap];</span><br><span class="line">    table = newTab;</span><br><span class="line">    <span class="keyword">if</span> (oldTab != null) &#123;</span><br><span class="line">        <span class="keyword">for</span> (int j = 0; j &lt; oldCap; ++j) &#123;</span><br><span class="line">            Node&lt;K,V&gt; e;</span><br><span class="line">            <span class="keyword">if</span> ((e = oldTab[j]) != null) &#123;</span><br><span class="line">                oldTab[j] = null;</span><br><span class="line">                // 如果bucket节点后没有链表或者红黑树(即, 当前bucket没有发生冲突), 则重新计算新的bucket索引赋值当前bucket节点</span><br><span class="line">                <span class="keyword">if</span> (e.next == null)</span><br><span class="line">                    newTab[e.hash &amp; (newCap - 1)] = e;</span><br><span class="line">                // 如果bucket节点是树节点, 按红黑树的方式处理bucket节点以及其后的所有节点</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (e instanceof TreeNode)</span><br><span class="line">                    ((TreeNode&lt;K,V&gt;)e).split(this, newTab, j, oldCap);</span><br><span class="line">                // 如果bucket节点是链表节点, 按链表的方式处理bucket节点以及其后的所有节点(Java 1.8 链表的插入方式改为了尾插入, 避免了并发情况下造成死循环的问题)</span><br><span class="line">                <span class="keyword">else</span> &#123;</span><br><span class="line">                    // l, h表示的是低高容量位置, head表示链表头节点，tail表示链表尾节点</span><br><span class="line">                    Node&lt;K,V&gt; loHead = null, loTail = null;</span><br><span class="line">                    Node&lt;K,V&gt; hiHead = null, hiTail = null;</span><br><span class="line">                    Node&lt;K,V&gt; next;</span><br><span class="line">                    // 链表尾插入保证了链表原有的顺序, 这样可以避免循环链接, 从而避免了死循环问题</span><br><span class="line">                    <span class="keyword">do</span> &#123;</span><br><span class="line">                        next = e.next;</span><br><span class="line">                        // 如果(e.hash &amp; oldCap) == 0, 表示在新table中bucket索引不变</span><br><span class="line">                        <span class="keyword">if</span> ((e.hash &amp; oldCap) == 0) &#123;</span><br><span class="line">                            <span class="keyword">if</span> (loTail == null)</span><br><span class="line">                                loHead = e;</span><br><span class="line">                            <span class="keyword">else</span></span><br><span class="line">                                loTail.next = e;</span><br><span class="line">                            loTail = e;</span><br><span class="line">                        &#125;</span><br><span class="line">                        // 如果(e.hash &amp; oldCap) != 0, 表示在新table中bucket索引发生了变化, 新索引为旧索引加oldCap</span><br><span class="line">                        <span class="keyword">else</span> &#123;</span><br><span class="line">                            <span class="keyword">if</span> (hiTail == null)</span><br><span class="line">                                hiHead = e;</span><br><span class="line">                            <span class="keyword">else</span></span><br><span class="line">                                hiTail.next = e;</span><br><span class="line">                            hiTail = e;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125; <span class="keyword">while</span> ((e = next) != null);</span><br><span class="line">                    <span class="keyword">if</span> (loTail != null) &#123;</span><br><span class="line">                        loTail.next = null;</span><br><span class="line">                        newTab[j] = loHead;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (hiTail != null) &#123;</span><br><span class="line">                        hiTail.next = null;</span><br><span class="line">                        // 因为新table长度翻倍, 所以新bucket索引等于旧bucket索引加oldCap</span><br><span class="line">                        newTab[j + oldCap] = hiHead;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">return</span> newTab;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>建议2：</strong> resize方法除了会使容量翻倍，而且会重新计算节点的bucket索引。因此，应该合理设置HashMap的初始容量和负载因子，尽量避免因为节点插入而导致的扩容。</p>
+</blockquote>
+<h1 id="get方法"><a href="#get方法" class="headerlink" title="get方法"></a>get方法</h1><p>get方法的操作过程：<br>1 对key做hash操作，并且通过hash &amp; (n - 1)计算得到bucket索引；<br>2 如果bucket节点存在key，查找成功直接返回bucket节点；<br>3 如果key发生冲突，两种处理情况：(a)如果bucket节点是树节点，按红黑树的方式查找；(b)如果bucket节点是链表节点，遍历链表查找；</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public V get(Object key) &#123;</span><br><span class="line">    Node&lt;K,V&gt; e;</span><br><span class="line">    <span class="built_in">return</span> (e = getNode(<span class="built_in">hash</span>(key), key)) == null ? null : e.value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">final Node&lt;K,V&gt; getNode(int <span class="built_in">hash</span>, Object key) &#123;</span><br><span class="line">    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; first, e; int n; K k;</span><br><span class="line">    <span class="keyword">if</span> ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp; (first = tab[(n - 1) &amp; <span class="built_in">hash</span>]) != null) &#123;</span><br><span class="line">        // 如果bucket节点存在key, 查找成功直接返回bucket节点</span><br><span class="line">        <span class="keyword">if</span> (first.hash == <span class="built_in">hash</span> &amp;&amp; ((k = first.key) == key || (key != null &amp;&amp; key.equals(k))))</span><br><span class="line">            <span class="built_in">return</span> first;</span><br><span class="line">        // key发生了冲突</span><br><span class="line">        <span class="keyword">if</span> ((e = first.next) != null) &#123;</span><br><span class="line">            // 如果bucket节点是树节点, 按红黑树的方式查找</span><br><span class="line">            <span class="keyword">if</span> (first instanceof TreeNode)</span><br><span class="line">                <span class="built_in">return</span> ((TreeNode&lt;K,V&gt;)first).getTreeNode(<span class="built_in">hash</span>, key);</span><br><span class="line">            // 如果bucket节点是链表节点, 遍历链表查找</span><br><span class="line">            <span class="keyword">do</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (e.hash == <span class="built_in">hash</span> &amp;&amp;</span><br><span class="line">                    ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))</span><br><span class="line">                    <span class="built_in">return</span> e;</span><br><span class="line">            &#125; <span class="keyword">while</span> ((e = e.next) != null);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">return</span> null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="remove方法"><a href="#remove方法" class="headerlink" title="remove方法"></a>remove方法</h1><p>remove方法的操作过程：<br>1 前面的基本与get方法类似，属于查找过程；<br>2 删除查找到的节点，三种处理情况：(a)如果要删除的节点是树节点，按红黑树的方式删除；(b)如果要删除的节点是bucket节点，bucket节点赋值其next节点；(c)如果要删除的节点是链表节点，按链表方式删除；</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">public V remove(Object key) &#123;</span><br><span class="line">    Node&lt;K,V&gt; e;</span><br><span class="line">    <span class="built_in">return</span> (e = removeNode(<span class="built_in">hash</span>(key), key, null, <span class="literal">false</span>, <span class="literal">true</span>)) == null ?</span><br><span class="line">        null : e.value;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">final Node&lt;K,V&gt; removeNode(int <span class="built_in">hash</span>, Object key, Object value, boolean matchValue, boolean movable) &#123;</span><br><span class="line">    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; int n, index;</span><br><span class="line">    <span class="keyword">if</span> ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp; (p = tab[index = (n - 1) &amp; <span class="built_in">hash</span>]) != null) &#123;</span><br><span class="line">        Node&lt;K,V&gt; node = null, e; K k; V v;</span><br><span class="line">        // 如果bucket节点存在key, bucket节点就是要删除的节点</span><br><span class="line">        <span class="keyword">if</span> (p.hash == <span class="built_in">hash</span> &amp;&amp; ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))</span><br><span class="line">            node = p;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((e = p.next) != null) &#123;</span><br><span class="line">            // 如果bucket节点是树节点, 按红黑树查找要删除的节点</span><br><span class="line">            <span class="keyword">if</span> (p instanceof TreeNode)</span><br><span class="line">                node = ((TreeNode&lt;K,V&gt;)p).getTreeNode(<span class="built_in">hash</span>, key);</span><br><span class="line">            // 如果bucket节点是链表节点, 遍历链表查找要删除的节点</span><br><span class="line">            <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">do</span> &#123;</span><br><span class="line">                    <span class="keyword">if</span> (e.hash == <span class="built_in">hash</span> &amp;&amp; ((k = e.key) == key || (key != null &amp;&amp; key.equals(k)))) &#123;</span><br><span class="line">                        node = e;</span><br><span class="line">                        <span class="built_in">break</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    p = e;</span><br><span class="line">                &#125; <span class="keyword">while</span> ((e = e.next) != null);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        // matchValue开关为<span class="literal">false</span>, 则只比较key, 不比较value</span><br><span class="line">        <span class="keyword">if</span> (node != null &amp;&amp; (!matchValue || (v = node.value) == value || (value != null &amp;&amp; value.equals(v)))) &#123;</span><br><span class="line">            // 如果要删除的节点是树节点, 按红黑树的方式删除</span><br><span class="line">            <span class="keyword">if</span> (node instanceof TreeNode)</span><br><span class="line">                ((TreeNode&lt;K,V&gt;)node).removeTreeNode(this, tab, movable);</span><br><span class="line">            // 如果要删除的节点是bucket节点, bucket节点赋值其next节点</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (node == p)</span><br><span class="line">                tab[index] = node.next;</span><br><span class="line">            // 如果要删除的节点是链表节点, 按链表方式删除该</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                p.next = node.next;</span><br><span class="line">            ++modCount;</span><br><span class="line">            --size;</span><br><span class="line">            // 后续处理方法, HashMap默认处理方法体为空</span><br><span class="line">            afterNodeRemoval(node);</span><br><span class="line">            <span class="built_in">return</span> node;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">return</span> null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>问题4：</strong> get、put以及remove方法的时间复杂度是多少？<br>在hash分布均匀的情况下，get、put以及remove方法的平均时间复杂度都是O(1)，但是如果在调用put方法时发生了扩容，由于涉及到扩容操作，put方法的平均时间复杂度就变成了O(oldCap + size)。<br><strong>注：</strong> HashMap的性能优势就在于读写操作的平均时间复杂度都是常量，但是前提是要尽量避免频繁的扩容，扩容操作会大大降低写操作的性能。</p>
+</blockquote>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/blog/2018/12/11/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap%E7%9A%84%E5%89%AF%E6%9C%AC%2012/" rel="next" title="深入理解Java HashMap">
+                <i class="fa fa-chevron-left"></i> 深入理解Java HashMap
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/blog/2018/12/11/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%20HashMap%E7%9A%84%E5%89%AF%E6%9C%AC%2010/" rel="prev" title="深入理解Java HashMap">
+                深入理解Java HashMap <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">vip</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/blog/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">15</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#HashMap的数据结构"><span class="nav-number">1.</span> <span class="nav-text">HashMap的数据结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HashMap的两个重要参数"><span class="nav-number">2.</span> <span class="nav-text">HashMap的两个重要参数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#hash方法"><span class="nav-number">3.</span> <span class="nav-text">hash方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#put方法"><span class="nav-number">4.</span> <span class="nav-text">put方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#resize方法"><span class="nav-number">5.</span> <span class="nav-text">resize方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#get方法"><span class="nav-number">6.</span> <span class="nav-text">get方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#remove方法"><span class="nav-number">7.</span> <span class="nav-text">remove方法</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">vip</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/blog/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/blog/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/blog/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/blog/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/blog/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/blog/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
